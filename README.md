@@ -36,3 +36,16 @@ Le workflow `.github/workflows/pages.yml` publie automatiquement le contenu du d
 ## Licence et données
 
 Le code de ce prototype est fourni sans données cartographiques tierces embarquées. Lors de l'intégration future d'OpenStreetMap ou de jeux de données de transport, leurs licences et obligations d'attribution seront documentées ici.
+
+
+## Données géographiques de Paris (version 0.2)
+
+La carte utilise désormais :
+- les limites administratives de la commune de Paris via l'API officielle geo.api.gouv.fr ;
+- les gares et stations par ligne d'Île-de-France Mobilités : `emplacement-des-gares-idf` ;
+- les tracés des lignes d'Île-de-France Mobilités : `traces-des-lignes-de-transport-en-commun-idfm` ;
+- le fond cartographique OpenStreetMap.
+
+La vue filtre les stations de métro, RER A à E et tramway situées dans les limites de Paris. Les tracés des lignes sont ceux publiés par IDFM et restent visibles sur leur parcours régional autour de Paris. Les stations desservies par plusieurs lignes sont regroupées pour afficher leurs correspondances.
+
+Les jeux de données IDFM sont publiés sous licence ODbL. Attribution affichée dans la carte : « © Île-de-France Mobilités ». Le fond de carte porte l'attribution © OpenStreetMap.
