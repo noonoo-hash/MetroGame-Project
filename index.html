@@ -1,200 +1,82 @@
 <!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101318">
-<title>METROPOLIS — World Transit</title>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101318">
+<title>METROPOLIS — Paris</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
-:root{color-scheme:dark;--bg:#101318;--panel:#171c23;--panel2:#1d242d;--line:#2c3540;--muted:#8c98a6;--text:#eef2f6;--accent:#d7f36a;--cyan:#6ed6d0;--red:#ff7777}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
-button{font:inherit;color:inherit;border:1px solid var(--line);background:var(--panel2);border-radius:9px;padding:9px 12px;cursor:pointer;transition:.15s}
-button:hover{border-color:#657382;background:#252e39}button:disabled{opacity:.4;cursor:not-allowed}
-.app{height:100dvh;display:grid;grid-template-rows:64px 1fr 72px;grid-template-columns:1fr}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:#12171d;z-index:5}
-.brand{display:flex;align-items:center;gap:12px;letter-spacing:.16em;font-size:12px;font-weight:800}.brandmark{width:25px;height:25px;border:2px solid var(--accent);display:grid;place-items:center;border-radius:7px;color:var(--accent);font-size:12px}
-.topstats{display:flex;gap:25px;align-items:center}.stat small{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}.stat strong{font-size:14px;font-variant-numeric:tabular-nums}.stat.money strong{color:var(--accent)}
-.main{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 310px}
-.mapwrap{position:relative;overflow:hidden;background-color:#141a20;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:36px 36px}
-.maphead{position:absolute;top:22px;left:24px;z-index:2;pointer-events:none}.eyebrow{font-size:10px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}.maphead h1{font-size:23px;letter-spacing:.04em;margin:4px 0 0;font-weight:650}.maphead p{margin:2px 0;color:var(--muted);font-size:12px}
-.maptools{position:absolute;right:18px;top:18px;display:flex;gap:7px;z-index:3}.maptools button{font-size:11px;padding:7px 10px}
-#map{width:100%;height:100%;display:block;touch-action:manipulation}
-.water{fill:#18232a;opacity:.85}.district{fill:#1a2229;stroke:#242e38;stroke-width:1}.district-label{fill:#566371;font-size:11px;letter-spacing:2px}
-.road{fill:none;stroke:#2b343e;stroke-width:2;opacity:.8}.river{fill:none;stroke:#253e49;stroke-width:22;opacity:.8}
-.route{fill:none;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;opacity:.94;filter:drop-shadow(0 2px 5px #0008)}
-.station{cursor:pointer;outline:none}.station circle{fill:#11171d;stroke:#e8edf2;stroke-width:3}.station text{fill:#dce3e9;font-size:10px;paint-order:stroke;stroke:#12171d;stroke-width:3px;stroke-linejoin:round;pointer-events:none}.station.selected circle{stroke:var(--accent);stroke-width:5}.station.interchange circle{fill:#e8edf2;stroke:#11171d;stroke-width:3}
-.station:hover circle{stroke:var(--accent)}.depot-mark{fill:var(--accent);stroke:#11171d;stroke-width:2}.train{fill:#fff;stroke:#11171d;stroke-width:3}
-.mapnote{position:absolute;left:24px;bottom:20px;color:#788593;font-size:11px;pointer-events:none}
-.side{background:#14191f;border-left:1px solid var(--line);padding:18px;overflow:auto}.side h2{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#cbd3db;margin:4px 0 16px}.section{padding:0 0 18px;margin-bottom:17px;border-bottom:1px solid var(--line)}.section:last-child{border:0}.muted{color:var(--muted)}.big{font-size:23px;font-weight:650;letter-spacing:-.03em}.tiny{font-size:11px;color:var(--muted)}
-.action{width:100%;display:flex;align-items:center;justify-content:space-between;margin:7px 0;text-align:left}.action span:last-child{color:var(--muted);font-size:11px}.action.primary{background:var(--accent);border-color:var(--accent);color:#14191f;font-weight:700}.action.primary span:last-child{color:#35401a}
-.pill{display:inline-flex;border:1px solid var(--line);border-radius:99px;padding:4px 8px;font-size:10px;color:var(--muted);gap:5px;align-items:center}.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block}
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0}.progress{height:5px;background:#2a333d;border-radius:8px;overflow:hidden;margin-top:8px}.progress i{display:block;height:100%;background:var(--accent);width:0}
-.bottom{display:flex;align-items:center;justify-content:center;gap:8px;border-top:1px solid var(--line);background:#12171d;padding:10px;z-index:5}.navbtn{min-width:112px;display:flex;gap:9px;align-items:center;justify-content:center;font-size:12px}.navbtn.active{border-color:var(--accent);color:var(--accent);background:#20271d}.navicon{font-size:16px}
-.toast{position:absolute;bottom:88px;left:50%;transform:translateX(-50%);background:#e9f3d0;color:#192015;padding:10px 16px;border-radius:9px;font-size:12px;font-weight:650;z-index:10;opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1}
-.modalback{position:fixed;inset:0;background:#0009;z-index:20;display:none;place-items:center;padding:20px}.modalback.open{display:grid}.modal{width:min(440px,100%);background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px;box-shadow:0 20px 70px #0008}.modal h3{margin:0 0 6px;font-size:17px}.modal p{color:var(--muted);font-size:12px}.modal input{width:100%;background:#0f1419;border:1px solid var(--line);border-radius:8px;padding:11px;color:white;margin:8px 0 14px}.modalfoot{display:flex;justify-content:flex-end;gap:8px}
-.listitem{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #29313a;font-size:12px}.listitem:last-child{border:0}
-@media(max-width:760px){body{overflow:auto}.app{height:100dvh;min-height:620px;grid-template-rows:58px minmax(0,1fr) 64px}.main{grid-template-columns:1fr;grid-template-rows:minmax(300px,1fr) 230px}.side{border-left:0;border-top:1px solid var(--line);padding:12px 16px}.side .section{display:inline-block;vertical-align:top;width:48%;margin-right:1%;padding-right:8px}.maphead{top:12px;left:14px}.maphead h1{font-size:18px}.maptools{top:12px;right:10px}.topbar{padding:0 12px}.topstats{gap:12px}.stat strong{font-size:12px}.stat small{font-size:8px}.brand{font-size:10px}.bottom{gap:4px}.navbtn{min-width:0;flex:1;padding:8px 4px;font-size:10px;gap:4px}.navicon{font-size:14px}}
-</style>
-</head>
-<body>
-<div class="app">
-<header class="topbar">
-  <div class="brand"><div class="brandmark">M</div><span>METROPOLIS</span><span class="pill">EARLY BUILD 0.1</span></div>
-  <div class="topstats">
-    <div class="stat money"><small>Trésorerie</small><strong id="money">650 000 €</strong></div>
-    <div class="stat"><small>Jour</small><strong id="day">01 · AVR 2026</strong></div>
-    <div class="stat"><small>Voyageurs</small><strong id="riders">0</strong></div>
-  </div>
-</header>
-<main class="main">
-<section class="mapwrap">
-  <div class="maphead"><div class="eyebrow">Réseau urbain · France</div><h1>PARIS</h1><p id="mapstatus">Plan schématique · Île-de-France</p></div>
-  <div class="maptools"><button id="zoomOut" aria-label="Dézoomer">−</button><button id="zoomIn" aria-label="Zoomer">+</button><button id="resetView">Centrer</button></div>
-  <svg id="map" viewBox="0 0 900 650" role="img" aria-label="Carte schématique du réseau de métro de Paris">
-    <g id="mapContent">
-      <path class="river" d="M80 380 C180 320 235 390 315 345 S450 290 520 345 S660 430 810 340"/>
-      <path class="district" d="M110 100 L330 75 390 180 300 285 100 250Z"/><path class="district" d="M390 75 L650 90 720 230 550 275 390 180Z"/>
-      <path class="district" d="M100 420 L300 365 400 480 330 600 95 570Z"/><path class="district" d="M550 390 L790 340 835 560 600 595 470 490Z"/>
-      <path class="road" d="M40 180 L850 500 M90 560 L700 70 M210 50 L530 620 M760 80 L280 600 M50 310 L850 310 M430 35 L430 620"/>
-      <text class="district-label" x="180" y="155">MONTMARTRE</text><text class="district-label" x="575" y="160">RÉPUBLIQUE</text><text class="district-label" x="155" y="520">MONTPARNASSE</text><text class="district-label" x="660" y="520">NATION</text><text class="district-label" x="430" y="410">SEINE</text>
-      <g id="routes"></g><g id="trains"></g><g id="stations"></g>
-    </g>
-  </svg>
-  <div class="mapnote">SÉLECTIONNE UNE STATION · CRÉE TON RÉSEAU</div>
-</section>
-<aside class="side">
-  <section class="section">
-    <h2 id="panelTitle">Vue d'ensemble</h2>
-    <div class="row"><span class="muted">État du réseau</span><span class="pill"><i class="dot"></i><span id="networkState">En service</span></span></div>
-    <div class="big" id="stationCount">8 stations</div><div class="tiny" id="lineCount">1 ligne active</div>
-    <div class="progress"><i id="progressBar" style="width:12%"></i></div>
-    <div class="row tiny"><span>Développement de Paris</span><strong id="progressText">12 %</strong></div>
-  </section>
-  <section class="section" id="overviewPanel">
-    <h2>Exploitation</h2>
-    <div class="row"><span class="muted">Revenus / jour</span><strong id="revenue">+ 0 €</strong></div>
-    <div class="row"><span class="muted">Dépenses / jour</span><strong id="expenses">− 0 €</strong></div>
-    <div class="row"><span class="muted">Satisfaction</span><strong id="satisfaction">82 %</strong></div>
-    <button class="action primary" id="advance"><span>Passer au jour suivant</span><span>＋1 J</span></button>
-    <div class="tiny">La simulation avance à chaque journée. Les voyageurs génèrent des recettes selon les connexions.</div>
-  </section>
-  <section class="section" id="selectedPanel">
-    <h2>Station sélectionnée</h2><div class="big" id="selectedName">Aucune</div><div class="tiny" id="selectedInfo">Choisis un point sur la carte pour afficher ses informations.</div>
-  </section>
-  <section class="section">
-    <h2>Objectif actuel</h2><div class="row"><span>Construire 2 nouvelles stations</span><strong id="goal">0 / 2</strong></div><div class="tiny">Développe le réseau pour débloquer la prochaine zone.</div>
-  </section>
-</aside>
-</main>
-<nav class="bottom">
-  <button class="navbtn active" data-tab="network"><span class="navicon">⌁</span> Réseau</button>
-  <button class="navbtn" data-tab="build"><span class="navicon">＋</span> Construire</button>
-  <button class="navbtn" data-tab="trains"><span class="navicon">▰</span> Trains</button>
-  <button class="navbtn" data-tab="depot"><span class="navicon">▦</span> Dépôts</button>
-  <button class="navbtn" data-tab="finance"><span class="navicon">◫</span> Gestion</button>
-</nav>
-<div class="toast" id="toast"></div>
-<div class="modalback" id="modal"><div class="modal"><h3 id="modalTitle">Construire</h3><p id="modalText"></p><input id="modalInput" maxlength="28" autocomplete="off"><div class="modalfoot"><button id="cancelModal">Annuler</button><button class="action primary" id="confirmModal">Confirmer</button></div></div></div>
-</div>
+:root{color-scheme:dark;--bg:#101318;--panel:#171c23;--panel2:#202731;--line:#303a45;--muted:#8d99a7;--text:#edf1f5;--accent:#d7f36a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 Inter,system-ui,sans-serif;overflow:hidden}button,input{font:inherit;color:inherit}button{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:9px 11px;cursor:pointer}button:hover{border-color:#687788}button.active{border-color:var(--accent);color:var(--accent)}
+.app{height:100dvh;display:grid;grid-template-rows:62px 1fr 66px}.top{display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:#12171d;border-bottom:1px solid var(--line);z-index:500}.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.16em;font-size:12px}.mark{border:2px solid var(--accent);color:var(--accent);width:25px;height:25px;display:grid;place-items:center;border-radius:7px}.stats{display:flex;gap:24px}.stat small{display:block;color:var(--muted);font-size:9px;letter-spacing:.13em;text-transform:uppercase}.stat strong{font-size:13px;font-variant-numeric:tabular-nums}.money{color:var(--accent)}
+.main{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 315px}.mapwrap{position:relative;min-width:0;background:#151b21}#map{height:100%;width:100%;background:#18212a}.maphead{position:absolute;top:17px;left:20px;z-index:450;pointer-events:none;text-shadow:0 2px 9px #000}.eyebrow{font-size:9px;color:#a6b1bd;letter-spacing:.18em;text-transform:uppercase}.maphead h1{font-size:23px;margin:3px 0;font-weight:650;letter-spacing:.04em}.maphead p{margin:0;color:#a6b1bd;font-size:11px}.mapfilters{position:absolute;right:15px;top:15px;z-index:450;display:flex;gap:5px}.mapfilters button{background:#151b21e8;font-size:10px;padding:7px 9px}.mapfilters button.active{background:#252d22;color:var(--accent);border-color:var(--accent)}
+.loadstatus{position:absolute;left:20px;bottom:15px;z-index:450;background:#111820dd;color:#c6d0d9;border:1px solid #39434d;border-radius:7px;padding:7px 10px;font-size:10px;max-width:min(80%,460px)}.side{background:#14191f;border-left:1px solid var(--line);padding:17px;overflow:auto}.side h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#cbd3db;margin:3px 0 14px}.section{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:16px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0}.muted,.tiny{color:var(--muted)}.tiny{font-size:10px}.big{font-size:22px;font-weight:650}.pill{border:1px solid var(--line);border-radius:99px;padding:3px 7px;color:#aeb8c3;font-size:10px}.action{width:100%;display:flex;justify-content:space-between;text-align:left;margin:6px 0}.primary{background:var(--accent);border-color:var(--accent);color:#151a12;font-weight:700}.primary span:last-child{color:#38421d}.lineitem,.stationitem{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px 0;border-bottom:1px solid #28313a;font-size:11px}.linechip{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px}.stationlist{max-height:200px;overflow:auto}.stationitem{cursor:pointer}.stationitem:hover{color:var(--accent)}.bottom{display:flex;justify-content:center;align-items:center;gap:7px;background:#12171d;border-top:1px solid var(--line);padding:8px;z-index:500}.navbtn{min-width:110px;font-size:11px}.toast{position:absolute;bottom:78px;left:50%;transform:translateX(-50%);background:#eaf3d4;color:#192014;border-radius:8px;padding:9px 14px;font-size:11px;font-weight:700;z-index:1000;opacity:0;transition:.2s;pointer-events:none}.toast.show{opacity:1}
+.modalback{display:none;position:fixed;inset:0;background:#0009;z-index:1200;place-items:center;padding:20px}.modalback.open{display:grid}.modal{width:min(400px,100%);padding:20px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}.modal h3{margin:0 0 5px}.modal p{color:var(--muted);font-size:12px}.modal input{width:100%;background:#0e1318;border:1px solid var(--line);padding:10px;border-radius:7px;margin:10px 0}.modalfoot{display:flex;justify-content:flex-end;gap:8px}
+.leaflet-container{font:inherit}.leaflet-control-attribution{font-size:9px!important;background:#101820d9!important;color:#aeb8c3!important}.leaflet-control-attribution a{color:#d7e4ed!important}.leaflet-control-zoom a{background:#1b232c!important;color:#eee!important;border-color:#3b4652!important}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#171e26;color:#edf1f5}.leaflet-popup-content{font-size:11px}.leaflet-popup-content b{font-size:12px}
+@media(max-width:760px){.app{grid-template-rows:56px minmax(0,1fr) 58px}.main{grid-template-columns:1fr;grid-template-rows:minmax(320px,1fr) 205px}.side{border-left:0;border-top:1px solid var(--line);padding:10px 14px}.side .section{display:inline-block;vertical-align:top;width:48%;margin-right:1%;padding-right:6px}.top{padding:0 10px}.stats{gap:10px}.stat small{font-size:8px}.stat strong{font-size:11px}.brand{font-size:10px}.maphead{top:10px;left:12px}.maphead h1{font-size:18px}.mapfilters{top:10px;right:8px}.mapfilters button{padding:6px;font-size:9px}.navbtn{min-width:0;flex:1;padding:8px 4px;font-size:9px}}
+</style></head><body><div class="app">
+<header class="top"><div class="brand"><div class="mark">M</div>METROPOLIS <span class="pill">PARIS · 0.2</span></div><div class="stats"><div class="stat"><small>Trésorerie</small><strong class="money" id="money">1 200 000 €</strong></div><div class="stat"><small>Jour</small><strong id="day">01 · AVR 2026</strong></div><div class="stat"><small>Stations</small><strong id="stationTotal">—</strong></div></div></header>
+<main class="main"><section class="mapwrap"><div id="map"></div><div class="maphead"><div class="eyebrow">Réseau ferroviaire · données IDFM</div><h1>PARIS</h1><p>Carte géographique · stations et tracés officiels</p></div>
+<div class="mapfilters"><button class="active" data-mode="all">Tout</button><button class="active" data-mode="Metro">Métro</button><button class="active" data-mode="RER">RER</button><button class="active" data-mode="Tramway">Tram</button></div><div class="loadstatus" id="loadstatus">Chargement des données géographiques officielles…</div></section>
+<aside class="side"><section class="section"><h2>Réseau de référence</h2><div class="big" id="realStations">Chargement…</div><div class="tiny" id="realLines">Récupération des lignes de métro, RER et tramway.</div><div class="row"><span class="muted">Source</span><span class="pill">Île-de-France Mobilités</span></div></section>
+<section class="section"><h2>Station sélectionnée</h2><div class="big" id="selectedName">Aucune</div><div class="tiny" id="selectedInfo">Clique sur une station pour voir les lignes qui la desservent.</div><div id="selectedLines"></div></section>
+<section class="section"><h2>Ton réseau</h2><div class="row"><span class="muted">Lignes construites</span><strong id="gameLineCount">0</strong></div><div class="row"><span class="muted">Stations ajoutées</span><strong id="builtStations">0</strong></div><div id="gameLines"></div><button class="action primary" id="advance"><span>Passer au jour suivant</span><span>＋1 J</span></button><div class="tiny" id="economy">Construis tes propres lignes au-dessus du réseau existant.</div></section></aside></main>
+<nav class="bottom"><button class="navbtn active" data-tab="inspect">⌖ Explorer</button><button class="navbtn" data-tab="build">＋ Construire</button><button class="navbtn" data-tab="trains">▰ Trains</button><button class="navbtn" data-tab="depot">▦ Dépôts</button><button class="navbtn" data-tab="finance">◫ Gestion</button></nav>
+<div class="toast" id="toast"></div><div class="modalback" id="modal"><div class="modal"><h3 id="modalTitle">Construire</h3><p id="modalText"></p><input id="modalInput" placeholder="Nom"><div class="modalfoot"><button id="cancel">Annuler</button><button class="primary" id="confirm">Confirmer</button></div></div></div></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
-(function(){
-'use strict';
-const $=id=>document.getElementById(id);
-const colors=['#f0b94d','#6ec9d3','#d17bd5','#8bcf8a','#ed7d78'];
-const initialStations=[
-{id:1,name:'La Défense',x:115,y:295},{id:2,name:'Charles de Gaulle–Étoile',x:270,y:250},{id:3,name:'Champs-Élysées',x:370,y:285},{id:4,name:'Concorde',x:455,y:330},{id:5,name:'Louvre',x:520,y:385},{id:6,name:'Châtelet',x:590,y:420},{id:7,name:'Bastille',x:690,y:390},{id:8,name:'Nation',x:775,y:420}
-];
-let state={money:650000,day:1,stations:initialStations,lines:[{id:1,name:'Ligne A',color:colors[0],stations:[1,2,3,4,5,6,7,8]}],depots:[{x:735,y:525}],trains:2,selected:null,activeLine:1,mode:'network',nextStation:9,nextLine:2,zoom:1,riders:0,revenue:0,expenses:0,satisfaction:82,goal:0,paused:false};
+(()=>{'use strict';
+const $=id=>document.getElementById(id), API='https://data.iledefrance-mobilites.fr/api/explore/v2.1/catalog/datasets/';
+const stationDataset='emplacement-des-gares-idf', routeDataset='traces-des-lignes-de-transport-en-commun-idfm';
+const colors={Metro:'#e8edf2',RER:'#f0b94d',Tramway:'#6ed6d0'};
+const map=L.map('map',{zoomControl:true,preferCanvas:true}).setView([48.8566,2.3522],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Données transport : <a href="https://data.iledefrance-mobilites.fr/">Île-de-France Mobilités</a> (ODbL)'}).addTo(map);
+let boundaryLayer=null,routeLayers={},stationLayers={},stations=[],routes=[],filters={Metro:true,RER:true,Tramway:true},selected=null,buildMode=false,firstPick=null;
+let game={money:1200000,day:1,lines:[],depots:[{name:'Dépôt initial',trains:2}],trains:2,built:[]};
 const fmt=n=>Math.round(n).toLocaleString('fr-FR')+' €';
-const station=id=>state.stations.find(s=>s.id===id);
-function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2100)}
-function connected(){return state.lines.reduce((n,l)=>n+Math.max(0,l.stations.length-1),0)}
-function render(){
- $('money').textContent=fmt(state.money);$('day').textContent=String(state.day).padStart(2,'0')+' · '+['AVR','MAI','JUN','JUL','AOÛ','SEP','OCT','NOV','DÉC','JAN','FÉV','MAR'][(Math.floor((state.day-1)/30))%12]+' 2026';
- $('riders').textContent=state.riders.toLocaleString('fr-FR');$('stationCount').textContent=state.stations.length+' stations';$('lineCount').textContent=state.lines.length+' ligne'+(state.lines.length>1?'s':'')+' · '+connected()+' liaisons';
- $('revenue').textContent='+ '+fmt(state.revenue);$('expenses').textContent='− '+fmt(state.expenses);$('satisfaction').textContent=state.satisfaction+' %';$('goal').textContent=state.goal+' / 2';
- const progress=Math.min(100,Math.round((state.stations.length/24)*100));$('progressBar').style.width=progress+'%';$('progressText').textContent=progress+' %';
- $('networkState').textContent=state.paused?'En pause':'En service';
- $('selectedName').textContent=state.selected?station(state.selected).name:'Aucune';
- $('selectedInfo').textContent=state.selected?'Desservie par '+state.lines.filter(l=>l.stations.includes(state.selected)).map(l=>l.name).join(', '):'Choisis un point sur la carte pour afficher ses informations.';
- drawMap();renderPanel();
+function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2200)}
+async function json(url){const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);return r.json()}
+function inside(pt,geom){if(!geom)return true;const polys=geom.type==='Polygon'?[geom.coordinates]:geom.type==='MultiPolygon'?geom.coordinates:[];const ringHit=ring=>{let hit=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if(((a[1]>pt[1])!==(b[1]>pt[1]))&&(pt[0]<(b[0]-a[0])*(pt[1]-a[1])/(b[1]-a[1])+a[0]))hit=!hit}return hit};return polys.some(poly=>ringHit(poly[0])&&!poly.slice(1).some(r=>ringHit(r)))}
+function coordsOf(f){const p=f.geo_point_2d||f.geo_shape?.coordinates;if(Array.isArray(p))return p.length===2?(Math.abs(p[0])<=90?[p[1],p[0]]:[p[0],p[1]]):null;if(p&&typeof p==='object'&&'lat'in p)return[p.lat,p.lon];return null}
+function featureGeometry(f){let s=f.shape||f.geo_shape;if(!s)return null;if(s.geometry)return s.geometry;if(s.type&&s.coordinates)return s;return null}
+function routeMode(f){const t=String(f.route_type||'').toLowerCase(),n=String(f.route_short_name||'').toUpperCase();if(t==='subway'||t==='metro')return'Metro';if(t==='tram')return'Tramway';if((t==='rail'||t==='train')&&['A','B','C','D','E'].includes(n))return'RER';return null}
+function stationMode(f){const m=String(f.mode||'').toLowerCase();if(m.includes('metro'))return'Metro';if(m.includes('rer'))return'RER';if(m.includes('tram'))return'Tramway';return null}
+function makeStationPopup(s){return '<b>'+escapeHtml(s.name)+'</b><br>'+s.lines.map(l=>escapeHtml(l.mode==='Metro'?'Métro '+l.name:l.mode==='RER'?'RER '+l.name:'Tram '+l.name)).join(' · ')}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function drawStations(){Object.values(stationLayers).forEach(l=>map.removeLayer(l));stationLayers={};for(const mode of Object.keys(filters)){if(!filters[mode])continue;const group=L.layerGroup();stations.filter(s=>s.lines.some(l=>l.mode===mode)).forEach(s=>{const circle=L.circleMarker([s.lat,s.lon],{radius:s.lines.length>1?5:3.4,color:'#121820',weight:1.4,fillColor:mode==='Metro'?'#f0f2f5':colors[mode],fillOpacity:.98});circle.bindPopup(makeStationPopup(s));circle.on('click',()=>selectStation(s.id));circle.addTo(group)});group.addTo(map);stationLayers[mode]=group}}
+function drawRoutes(){Object.values(routeLayers).forEach(l=>map.removeLayer(l));routeLayers={};for(const mode of Object.keys(filters)){if(!filters[mode])continue;const group=L.layerGroup();routes.filter(r=>r.mode===mode).forEach(r=>{if(!r.geometry)return;const layer=L.geoJSON({type:'Feature',geometry:r.geometry,properties:{}},{style:{color:r.color||colors[mode],weight:mode==='Metro'?3.8:4.2,opacity:.88}});layer.bindPopup('<b>'+escapeHtml(mode==='Metro'?'Métro '+r.name:mode==='RER'?'RER '+r.name:'Tram '+r.name)+'</b><br>'+escapeHtml(r.longName||''));layer.addTo(group)});group.addTo(map);routeLayers[mode]=group}}
+function selectStation(id){selected=stations.find(s=>s.id===id);if(!selected)return;$('selectedName').textContent=selected.name;$('selectedInfo').textContent=selected.lines.length+' desserte(s) · coordonnées officielles';$('selectedLines').innerHTML=selected.lines.map(l=>'<div class="lineitem"><span><i class="linechip" style="background:'+(l.mode==='Metro'?'#e9edf1':colors[l.mode])+'"></i>'+(l.mode==='Metro'?'Métro':l.mode==='RER'?'RER':'Tram')+' '+escapeHtml(l.name)+'</span><span class="tiny">'+escapeHtml(l.mode)+'</span></div>').join('');if(buildMode){if(firstPick===null){firstPick=id;toast('Première station sélectionnée. Choisis la suivante.')}else if(firstPick!==id){connect(firstPick,id);firstPick=null}}}
+function renderStats(){$('money').textContent=fmt(game.money);$('day').textContent=String(game.day).padStart(2,'0')+' · AVR 2026';$('gameLineCount').textContent=game.lines.length;$('builtStations').textContent=game.built.length;$('gameLines').innerHTML=game.lines.map(l=>'<div class="lineitem"><span><i class="linechip" style="background:'+l.color+'"></i>'+escapeHtml(l.name)+'</span><span>'+l.stationIds.length+' stations</span></div>').join('');$('economy').textContent=game.trains+' trains · '+game.depots.length+' dépôt(s) · sauvegarde locale';try{localStorage.setItem('metropolis-paris-save',JSON.stringify(game))}catch(e){}}
+function spend(n){if(game.money<n){toast('Fonds insuffisants.');return false}game.money-=n;return true}
+function connect(a,b){const line=game.lines[game.lines.length-1];if(!line){toast('Crée d’abord une ligne.');return}if(line.stationIds.includes(b)){toast('Station déjà présente.');return}if(!spend(32000))return;line.stationIds.push(a,b);line.stationIds=[...new Set(line.stationIds)];toast('Liaison ajoutée à '+line.name);renderStats();drawGameLines()}
+let gameLayer=L.layerGroup().addTo(map);
+function drawGameLines(){gameLayer.clearLayers();game.lines.forEach(l=>{const pts=l.stationIds.map(id=>stations.find(s=>s.id===id)).filter(Boolean).map(s=>[s.lat,s.lon]);if(pts.length>1)L.polyline(pts,{color:l.color,weight:6,opacity:.95}).addTo(gameLayer)})}
+function modal(title,description,placeholder,cb){$('modalTitle').textContent=title;$('modalText').textContent=description;$('modalInput').placeholder=placeholder;$('modalInput').value='';$('modal').classList.add('open');$('modalInput').focus();$('confirm').onclick=()=>{$('modal').classList.remove('open');cb($('modalInput').value.trim())}}
+$('cancel').onclick=()=>$('modal').classList.remove('open');
+function addBuiltStation(name){if(!name)return;if(!spend(18000))return;const center=map.getCenter();const id='built-'+Date.now();game.built.push({id,name,lat:center.lat,lon:center.lng});toast('Station ajoutée sur la carte.');renderStats()}
+function advance(){game.day++;const traffic=game.lines.reduce((n,l)=>n+Math.max(0,l.stationIds.length-1),0)*260;const income=traffic*2.1;const costs=game.trains*950+game.lines.length*850+game.depots.length*400;game.money+=income-costs;toast('Bilan du jour : '+fmt(income-costs));renderStats()}
+function setTab(tab){buildMode=tab==='build';firstPick=null;document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));if(tab==='build'){modal('Construire une ligne','Une nouvelle ligne de jeu sera ajoutée. Ensuite, clique sur deux stations existantes pour les relier.','Nom de la ligne',name=>{if(!name)return;if(!spend(12000))return;game.lines.push({name,color:['#d7f36a','#ff9d72','#c49bff','#70d9cb'][game.lines.length%4],stationIds:[]});toast('Ligne créée. Sélectionne deux stations.');renderStats()})}else if(tab==='trains'){if(game.depots.length*4<=game.trains){toast('Capacité des dépôts atteinte.');return}if(spend(85000)){game.trains++;toast('Train ajouté à la flotte.');renderStats()}}else if(tab==='depot'){if(spend(120000)){game.depots.push({name:'Dépôt '+(game.depots.length+1),trains:0});toast('Dépôt indépendant construit.');renderStats()}}else if(tab==='finance'){toast('Finances : '+fmt(game.money))}else toast('Mode exploration.')}
+document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>setTab(b.dataset.tab)));
+document.querySelectorAll('.mapfilters button').forEach(b=>b.addEventListener('click',()=>{const mode=b.dataset.mode;if(mode==='all'){const on=Object.values(filters).some(Boolean);Object.keys(filters).forEach(k=>filters[k]=!on);document.querySelectorAll('.mapfilters button').forEach(x=>x.classList.toggle('active',!on||x.dataset.mode==='all'))}else{filters[mode]=!filters[mode];b.classList.toggle('active',filters[mode]);document.querySelector('.mapfilters [data-mode="all"]').classList.toggle('active',Object.values(filters).every(Boolean))}drawRoutes();drawStations()}));
+$('advance').onclick=advance;
+async function load(){
+ try{
+  const boundaryData=await json('https://geo.api.gouv.fr/communes/75056?fields=nom,contour&format=geojson&geometry=contour');
+  const boundary=boundaryData.geometry||boundaryData.contour;
+  if(boundary){boundaryLayer=L.geoJSON(boundary,{style:{color:'#d7f36a',weight:1.5,opacity:.85,fillColor:'#d7f36a',fillOpacity:.025,dashArray:'5 5'}}).addTo(map);map.fitBounds(boundaryLayer.getBounds().pad(.12))}
+  $('loadstatus').textContent='Téléchargement des gares et stations IDFM…';
+  const stationUrl=API+stationDataset+'/records?limit=100&offset=';
+  let records=[],offset=0,total=Infinity;
+  while(offset<total&&offset<3000){const data=await json(stationUrl+offset);const batch=data.results||[];total=data.total_count??data.total_count??(batch.length<100?offset+batch.length:Infinity);records.push(...batch);offset+=batch.length;if(!batch.length)break}
+  const groups=new Map();
+  for(const f of records){const mode=stationMode(f);if(!mode)continue;const pt=coordsOf(f);if(!pt||!inside([pt[1],pt[0]],boundary))continue;const id=String(f.id_gares??f.id_gare_g??(f.nom_gares+'-'+pt.join(',')));let s=groups.get(id);if(!s){s={id,name:f.nom_iv||f.nom_gares||'Station',lat:pt[0],lon:pt[1],lines:[]};groups.set(id,s)}const ln=String(f.indice_lig||f.res_com||'?').replace(/^METRO\\s*/i,'').replace(/^RER\\s*/i,'').replace(/^TRAM\\s*/i,'');if(!s.lines.some(x=>x.mode===mode&&x.name===ln))s.lines.push({mode,name:ln})}
+  stations=[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+  $('stationTotal').textContent=stations.length;$('realStations').textContent=stations.length+' stations dans Paris';$('loadstatus').textContent=stations.length+' stations parisiennes chargées · téléchargement des tracés…';
+  const where='route_type IN ("Subway","Tram") OR (route_type = "Rail" AND route_short_name IN ("A","B","C","D","E"))';
+  const routeData=await json(API+routeDataset+'/records?limit=100&where='+encodeURIComponent(where));
+  routes=(routeData.results||[]).map(rec=>{const f=rec;const mode=routeMode(f);if(!mode)return null;let geom=featureGeometry(f);if(geom&&geom.type==='Feature')geom=geom.geometry;return{mode,name:f.route_short_name||'?',longName:f.route_long_name||'',color:f.route_color?'#'+String(f.route_color).replace('#',''):colors[mode],geometry:geom}}).filter(Boolean);
+  $('realLines').textContent=routes.filter(r=>r.mode==='Metro').length+' lignes métro · '+routes.filter(r=>r.mode==='RER').length+' RER · '+routes.filter(r=>r.mode==='Tramway').length+' tramways (tracés régionaux, stations parisiennes)';
+  drawRoutes();drawStations();$('loadstatus').textContent='Données chargées : '+stations.length+' stations · '+routes.length+' tracés de lignes. Clique sur un point.';
+  try{const saved=localStorage.getItem('metropolis-paris-save');if(saved)game=Object.assign(game,JSON.parse(saved))}catch(e){}renderStats();
+ }catch(err){console.error(err);$('loadstatus').textContent='Erreur de chargement des données officielles : '+err.message+'. Vérifie la connexion puis recharge la page.';$('realStations').textContent='Données indisponibles';}
 }
-function drawMap(){
- const routes=$('routes'),nodes=$('stations'),trains=$('trains');routes.innerHTML='';nodes.innerHTML='';trains.innerHTML='';
- state.lines.forEach(l=>{
-  let d='';l.stations.forEach((id,i)=>{const s=station(id);if(s)d+=(i?' L':'M')+s.x+' '+s.y});
-  const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('class','route');p.setAttribute('stroke',l.color);routes.appendChild(p);
-  if(l.stations.length>1&&state.trains>0){const t=document.createElementNS('http://www.w3.org/2000/svg','circle');t.setAttribute('r','7');t.setAttribute('class','train');const a=station(l.stations[0]),b=station(l.stations[1]);if(a&&b){t.setAttribute('cx',(a.x+b.x)/2);t.setAttribute('cy',(a.y+b.y)/2)}trains.appendChild(t)}
- });
- state.stations.forEach(s=>{
-  const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('class','station'+(state.selected===s.id?' selected':'')+(state.lines.filter(l=>l.stations.includes(s.id)).length>1?' interchange':''));g.setAttribute('transform','translate('+s.x+' '+s.y+')');g.setAttribute('tabindex','0');
-  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('r',state.selected===s.id?'9':'6');g.appendChild(c);
-  const tx=document.createElementNS('http://www.w3.org/2000/svg','text');tx.setAttribute('x','11');tx.setAttribute('y','-10');tx.textContent=s.name;g.appendChild(tx);
-  g.addEventListener('click',()=>selectStation(s.id));g.addEventListener('keydown',e=>{if(e.key==='Enter')selectStation(s.id)});nodes.appendChild(g);
- });
- state.depots.forEach(d=>{const g=document.createElementNS('http://www.w3.org/2000/svg','g');g.setAttribute('transform','translate('+d.x+' '+d.y+')');const r=document.createElementNS('http://www.w3.org/2000/svg','rect');r.setAttribute('x','-8');r.setAttribute('y','-8');r.setAttribute('width','16');r.setAttribute('height','16');r.setAttribute('rx','2');r.setAttribute('class','depot-mark');g.appendChild(r);nodes.appendChild(g)});
-}
-function selectStation(id){
- if(state.mode==='build'&&state.selected&&state.selected!==id){connectStations(state.selected,id);return}
- state.selected=id;render();
-}
-function renderPanel(){
- const p=$('overviewPanel'),s=$('selectedPanel');p.style.display=state.mode==='network'?'block':'none';s.style.display=state.mode==='network'?'block':'none';
- const title={network:'Vue d’ensemble',build:'Construction',trains:'Matériel roulant',depot:'Dépôts',finance:'Gestion'}[state.mode];$('panelTitle').textContent=title;
- if(state.mode==='build'){
-  $('overviewPanel').style.display='block';$('selectedPanel').style.display='none';
-  p.innerHTML='<h2>Développer le réseau</h2><div class="tiny">Pose de nouvelles stations sur la carte schématique.</div><button class="action primary" id="addStation"><span>＋ Nouvelle station</span><span>18 000 €</span></button><button class="action" id="newLine"><span>Créer une ligne</span><span>12 000 €</span></button><button class="action" id="connectMode"><span>Relier deux stations</span><span>32 000 €</span></button><div class="tiny" id="buildHint">Choisis une action, puis suis les indications.</div>';
-  $('addStation').onclick=()=>openModal('Nouvelle station','Donne un nom à ta station. Elle sera placée au centre de la carte.', 'Nom de station',name=>addStation(name));
-  $('newLine').onclick=createLine;$('connectMode').onclick=()=>{state.selected=null;state.mode='build';toast('Clique sur la première station, puis sur la seconde.');render()};
-  $('buildHint').textContent='Astuce : relie les stations entre elles pour créer des trajets.';
- }
- if(state.mode==='trains'){
-  $('overviewPanel').style.display='block';$('selectedPanel').style.display='none';
-  p.innerHTML='<h2>Matériel roulant</h2><div class="big">'+state.trains+' trains</div><div class="tiny">Chaque train augmente la capacité du réseau. Un dépôt est nécessaire pour en acheter.</div><button class="action primary" id="buyTrain"><span>Acquérir un train</span><span>85 000 €</span></button><div class="row"><span class="muted">Capacité des dépôts</span><strong>'+ (state.depots.length*4)+' trains</strong></div><div class="row"><span class="muted">Lignes exploitées</span><strong>'+state.lines.length+'</strong></div>';
-  $('buyTrain').onclick=()=>{if(!state.depots.length){toast('Construis d’abord un dépôt séparé.');return}if(state.trains>=state.depots.length*4){toast('Capacité des dépôts atteinte.');return}if(spend(85000)){state.trains++;toast('Train ajouté à la flotte.');render()}};
- }
- if(state.mode==='depot'){
-  $('overviewPanel').style.display='block';$('selectedPanel').style.display='none';
-  p.innerHTML='<h2>Infrastructures de dépôt</h2><div class="big">'+state.depots.length+' dépôt'+(state.depots.length>1?'s':'')+'</div><div class="tiny">Les dépôts sont construits indépendamment des stations. Chaque dépôt accueille jusqu’à 4 trains.</div><button class="action primary" id="buildDepot"><span>＋ Construire un dépôt</span><span>120 000 €</span></button><div class="tiny">Emplacement actuel : '+(state.depots.length?'Secteur Est':'aucun')+'</div>';
-  $('buildDepot').onclick=()=>{if(spend(120000)){state.depots.push({x:state.depots.length?160:735,y:state.depots.length?155:525});toast('Dépôt construit. Capacité +4 trains.');render()}};
- }
- if(state.mode==='finance'){
-  $('overviewPanel').style.display='block';$('selectedPanel').style.display='none';
-  p.innerHTML='<h2>Gestion de l’entreprise</h2><div class="row"><span class="muted">Trésorerie</span><strong>'+fmt(state.money)+'</strong></div><div class="row"><span class="muted">Revenus journaliers</span><strong>+'+fmt(state.revenue)+'</strong></div><div class="row"><span class="muted">Charges journalières</span><strong>−'+fmt(state.expenses)+'</strong></div><div class="row"><span class="muted">Bénéfice estimé</span><strong>'+fmt(state.revenue-state.expenses)+'</strong></div><div class="row"><span class="muted">Satisfaction voyageurs</span><strong>'+state.satisfaction+' %</strong></div><button class="action" id="saveGame"><span>Sauvegarder la partie</span><span>LOCAL</span></button><button class="action" id="resetGame"><span>Nouvelle partie</span><span>↻</span></button>';
-  $('saveGame').onclick=()=>{save();toast('Partie sauvegardée sur cet appareil.')};
-  $('resetGame').onclick=()=>{if(confirm('Recommencer une nouvelle partie ?')){localStorage.removeItem('metropolis-save');location.reload()}};
- }
- if(state.mode==='network'){$('overviewPanel').innerHTML='<h2>Exploitation</h2><div class="row"><span class="muted">Revenus / jour</span><strong id="revenue">+ '+fmt(state.revenue)+'</strong></div><div class="row"><span class="muted">Dépenses / jour</span><strong id="expenses">− '+fmt(state.expenses)+'</strong></div><div class="row"><span class="muted">Satisfaction</span><strong id="satisfaction">'+state.satisfaction+' %</strong></div><button class="action primary" id="advance"><span>Passer au jour suivant</span><span>＋1 J</span></button><div class="tiny">La simulation avance à chaque journée. Les voyageurs génèrent des recettes selon les connexions.</div>';$('advance').onclick=advanceDay}
-}
-function spend(amount){if(state.money<amount){toast('Fonds insuffisants.');return false}state.money-=amount;return true}
-function addStation(name){
- if(!name.trim())return;if(!spend(18000))return;
- const n=state.stations.length;const x=300+(n%4)*85+(Math.floor(n/4)%2)*35,y=160+Math.floor(n/4)*95;
- state.stations.push({id:state.nextStation++,name:name.trim(),x,y});state.goal=Math.min(2,state.goal+1);state.selected=state.stations[state.stations.length-1].id;toast('Station construite.');state.mode='network';render();save();
-}
-function connectStations(a,b){
- if(!a||!b||a===b)return;
- const line=state.lines.find(l=>l.id===state.activeLine)||state.lines[0];if(line.stations.includes(b)){toast('Cette station est déjà sur la ligne.');state.selected=null;return}
- if(!spend(32000))return;
- if(line.stations.length===0){line.stations.push(a,b)}else{const index=line.stations.indexOf(a);if(index>=0)line.stations.splice(index+1,0,b);else line.stations.push(a,b)}
- state.selected=b;state.mode='network';toast('Liaison construite sur '+line.name+'.');render();save();
-}
-function createLine(){if(state.lines.length>=5){toast('Limite de 5 lignes dans cette version.');return}if(!spend(12000))return;const l={id:state.nextLine++,name:'Ligne '+String.fromCharCode(64+state.nextLine-1),color:colors[(state.lines.length)%colors.length],stations:[]};state.lines.push(l);state.activeLine=l.id;state.mode='build';toast('Nouvelle ligne créée : sélectionne deux stations.');render()}
-function advanceDay(){
- state.day++;const links=connected();state.riders=Math.round((links*310+state.stations.length*55)*Math.max(1,state.trains/2));state.revenue=Math.round(state.riders*2.15);state.expenses=state.trains*1150+state.stations.length*230+state.lines.length*900+state.depots.length*450;state.money+=state.revenue-state.expenses;state.satisfaction=Math.max(48,Math.min(99,Math.round(65+links*1.8+state.trains*2-state.stations.length*.25)));
- if(state.money<0){state.paused=true;toast('Attention : trésorerie négative. Réduis tes charges.')}else toast('Journée terminée · '+fmt(state.revenue-state.expenses));
- render();save();
-}
-function openModal(title,text,placeholder,callback){$('modalTitle').textContent=title;$('modalText').textContent=text;$('modalInput').placeholder=placeholder;$('modalInput').value='';$('modal').classList.add('open');$('modalInput').focus();$('confirmModal').onclick=()=>{const v=$('modalInput').value;$('modal').classList.remove('open');callback(v)}}
-$('cancelModal').onclick=()=>$('modal').classList.remove('open');
-document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.navbtn').forEach(x=>x.classList.remove('active'));b.classList.add('active');state.mode=b.dataset.tab;state.selected=null;render()}));
-$('zoomIn').onclick=()=>{state.zoom=Math.min(1.4,state.zoom+.1);$('mapContent').setAttribute('transform','translate(450 325) scale('+state.zoom+') translate(-450 -325)')};
-$('zoomOut').onclick=()=>{state.zoom=Math.max(.7,state.zoom-.1);$('mapContent').setAttribute('transform','translate(450 325) scale('+state.zoom+') translate(-450 -325)')};
-$('resetView').onclick=()=>{state.zoom=1;$('mapContent').removeAttribute('transform')};
-function save(){try{localStorage.setItem('metropolis-save',JSON.stringify(state))}catch(e){}}
-try{const saved=localStorage.getItem('metropolis-save');if(saved){const parsed=JSON.parse(saved);if(parsed&&parsed.stations&&parsed.lines)state=Object.assign(state,parsed)}}catch(e){}
-render();setInterval(()=>{if(!state.paused){/* Les trains sont animés par la progression des journées. */}},1000);
+load();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
