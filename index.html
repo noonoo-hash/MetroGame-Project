@@ -59,7 +59,7 @@ $('advance').onclick=advance;
 async function load(){
  try{
   const boundaryData=await json('https://geo.api.gouv.fr/communes/75056?fields=nom,contour&format=geojson&geometry=contour');
-  const boundary=boundaryData.geometry||boundaryData.contour;
+  const boundary=boundaryData.geometry||boundaryData.features?.[0]?.geometry||boundaryData.contour;
   if(boundary){boundaryLayer=L.geoJSON(boundary,{style:{color:'#d7f36a',weight:1.5,opacity:.85,fillColor:'#d7f36a',fillOpacity:.025,dashArray:'5 5'}}).addTo(map);map.fitBounds(boundaryLayer.getBounds().pad(.12))}
   $('loadstatus').textContent='Téléchargement des gares et stations IDFM…';
   const stationUrl=API+stationDataset+'/records?limit=100&offset=';
