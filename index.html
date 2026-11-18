@@ -104,7 +104,7 @@ const colors=['#f0b94d','#6ec9d3','#d17bd5','#8bcf8a','#ed7d78'];
 const initialStations=[
 {id:1,name:'La Défense',x:115,y:295},{id:2,name:'Charles de Gaulle–Étoile',x:270,y:250},{id:3,name:'Champs-Élysées',x:370,y:285},{id:4,name:'Concorde',x:455,y:330},{id:5,name:'Louvre',x:520,y:385},{id:6,name:'Châtelet',x:590,y:420},{id:7,name:'Bastille',x:690,y:390},{id:8,name:'Nation',x:775,y:420}
 ];
-let state={money:650000,day:1,stations:initialStations,lines:[{id:1,name:'Ligne A',color:colors[0],stations:[1,2,3,4,5,6,7,8]}],depots:[],trains:2,selected:null,activeLine:1,mode:'network',nextStation:9,nextLine:2,zoom:1,riders:0,revenue:0,expenses:0,satisfaction:82,goal:0,paused:false};
+let state={money:650000,day:1,stations:initialStations,lines:[{id:1,name:'Ligne A',color:colors[0],stations:[1,2,3,4,5,6,7,8]}],depots:[{x:735,y:525}],trains:2,selected:null,activeLine:1,mode:'network',nextStation:9,nextLine:2,zoom:1,riders:0,revenue:0,expenses:0,satisfaction:82,goal:0,paused:false};
 const fmt=n=>Math.round(n).toLocaleString('fr-FR')+' €';
 const station=id=>state.stations.find(s=>s.id===id);
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2100)}
@@ -176,7 +176,8 @@ function connectStations(a,b){
  if(!a||!b||a===b)return;
  const line=state.lines.find(l=>l.id===state.activeLine)||state.lines[0];if(line.stations.includes(b)){toast('Cette station est déjà sur la ligne.');state.selected=null;return}
  if(!spend(32000))return;
- line.stations.push(b);state.selected=b;state.mode='network';toast('Liaison construite sur '+line.name+'.');render();save();
+ if(line.stations.length===0){line.stations.push(a,b)}else{const index=line.stations.indexOf(a);if(index>=0)line.stations.splice(index+1,0,b);else line.stations.push(a,b)}
+ state.selected=b;state.mode='network';toast('Liaison construite sur '+line.name+'.');render();save();
 }
 function createLine(){if(state.lines.length>=5){toast('Limite de 5 lignes dans cette version.');return}if(!spend(12000))return;const l={id:state.nextLine++,name:'Ligne '+String.fromCharCode(64+state.nextLine-1),color:colors[(state.lines.length)%colors.length],stations:[]};state.lines.push(l);state.activeLine=l.id;state.mode='build';toast('Nouvelle ligne créée : sélectionne deux stations.');render()}
 function advanceDay(){
