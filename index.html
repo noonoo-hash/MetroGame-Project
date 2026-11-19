@@ -152,7 +152,13 @@ function selectStation(id){selected=stations.find(s=>s.id===id);if(!selected)ret
 function networkStationIds(){return [...new Set(game.lines.flatMap(l=>l.stationIds||[]))]}
 function stationLevel(id){return Number(game.stationLevels?.[id]||0)}
 function stationPopularityScore(s){const nearby=stations.reduce((n,o)=>n+(o.id!==s.id&&distanceMeters(s,o)<=650?1:0),0);const interchange=new Set(s.lines.map(l=>routeKey(l.mode,l.name))).size;return interchange*4+nearby}
-function computeStationMaxLevels(){stationMaxLevels.clear();if(!stations.length)return;const ranked=stations.map(s=>({id:s.id,score:stationPopularityScore(s)})).sort((a,b)=>a.score-b.score);const counts=new Map();ranked.forEach(x=>counts.set(x.score,(counts.get(x.score)||0)+1));let cumulative=0;const below=new Map();for(const [score,count] of [...counts.entries()].sort((a,b)=>a[0]-b[0])){below.set(score,cumulative);cumulative+=count}ranked.forEach(x=>{const percentile=(below.get(x.score)+(counts.get(x.score)-1)/2)/Math.max(1,ranked.length-1);stationMaxLevels.set(x.id,2+Math.round(percentile*8))})}
+function computeStationMaxLevels(){
+ stationMaxLevels.clear();if(!stations.length)return;
+ const latCell=.006,lonCell=.009,buckets=new Map(),cellOf=s=>[Math.floor(s.lat/latCell),Math.floor(s.lon/lonCell)];
+ stations.forEach(st=>{const [y,x]=cellOf(st),key=y+':'+x;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(st)});
+ const ranked=stations.map(st=>{const [y,x]=cellOf(st);let nearby=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)for(const other of buckets.get((y+dy)+':'+(x+dx))||[])if(other.id!==st.id&&distanceMeters(st,other)<=650)nearby++;const interchange=new Set(st.lines.map(l=>routeKey(l.mode,l.name))).size;return{id:st.id,score:interchange*4+nearby}}).sort((a,b)=>a.score-b.score);
+ const counts=new Map();ranked.forEach(x=>counts.set(x.score,(counts.get(x.score)||0)+1));let cumulative=0;const below=new Map();for(const [score,count] of [...counts.entries()].sort((a,b)=>a[0]-b[0])){below.set(score,cumulative);cumulative+=count}ranked.forEach(x=>{const percentile=(below.get(x.score)+(counts.get(x.score)-1)/2)/Math.max(1,ranked.length-1);stationMaxLevels.set(x.id,2+Math.round(percentile*8))})
+}
 function stationMaxLevel(id){return stationMaxLevels.get(id)||5}
 function stationUpgradeCost(level){return Math.round(25000*Math.pow(level+1,1.55))}
 function trainUpgradeCost(){return Math.round(90000*Math.pow(game.trainLevel+1,1.7))}
