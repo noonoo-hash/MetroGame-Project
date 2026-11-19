@@ -140,7 +140,7 @@ async function switchCity(city){
   Object.values(routeLayers).forEach(l=>map.removeLayer(l));routeLayers={};Object.values(stationLayers).forEach(l=>map.removeLayer(l));stationLayers={};
   if(typeof gameLayer!=='undefined'&&gameLayer)gameLayer.clearLayers();
   stations=data.stations;routes=data.routes;game.activeCity=city;applyCitySnapshot(city,data);
-  filters={Metro:true,RER:true,Tramway:true,Bus:true,Ferry:true};document.querySelectorAll('.mapfilters button').forEach(b=>b.classList.add('active'));
+  filters={Metro:true,RER:true,Train:true,Tramway:true,Navette:true,Bus:true,Ferry:true};document.querySelectorAll('.mapfilters button').forEach(b=>b.classList.add('active'));
   stationMaxLevels.clear();computeStationMaxLevels();
   // Le cadrage est défini par les limites géographiques, indépendamment des réseaux débloqués.
   $('citySelect').value=city;$('cityHeading').textContent=CITY_META[city].name.toUpperCase();
