@@ -89,7 +89,48 @@ function renderPurchasePanel(){if(!selected)return;const a=stationActionState(),
 function upgradeSelectedStation(){if(!selected||!isOwned(selected.id))return;const lv=stationLevel(selected.id),max=stationMaxLevel(selected.id);if(lv>=max){toast('Cette gare a atteint son niveau maximum.');return}const cost=stationUpgradeCost(lv);if(!spend(cost))return;game.stationLevels[selected.id]=lv+1;toast(selected.name+' améliorée : niveau '+(lv+1)+' / '+max+'.');renderStats();selectStation(selected.id)}
 function buySelectedStation(){if(!selected)return;const id=selected.id;if(isOwned(id)){upgradeSelectedStation();return}if(!isStationReachable(selected)){toast('Progression de proche en proche : cette gare n’est pas encore accessible.');return}const quote=stationPurchaseQuote(selected),chosen=quote.chosen,existingLine=quote.existing;if(!spend(quote.total))return;game.ownedStations.push(id);if(chosen){if(!existingLine&&game.trains>=totalTrainCapacity()){game.ownedStations.pop();game.money+=quote.total;toast('Capacité des dépôts atteinte : construis un dépôt avant cette nouvelle ligne.');return}let line=existingLine;if(!line){line={name:(chosen.route.mode==='Metro'?'Métro':chosen.route.mode==='RER'?'RER':'Tram')+' '+chosen.route.name,routeKey:chosen.route.key,color:chosen.route.mode==='Metro'?'#d7f36a':colors[chosen.route.mode],stationIds:[chosen.other.id],trainCount:0};game.lines.push(line)}if(!line.stationIds.includes(id))line.stationIds.push(id);if(!existingLine){line.trainCount=1;game.trains++;}toast(existingLine?'Gare ajoutée à '+line.name+'.':'Ligne '+line.name+' ouverte · 1 train affecté automatiquement.')}else{toast('Gare achetée. Achète une gare voisine de la même ligne pour ouvrir la liaison.')}renderStats();drawStations();drawGameLines();selectStation(id)}
 let gameLayer=L.layerGroup().addTo(map);
-function drawGameLines(){gameLayer.clearLayers();game.lines.forEach(l=>{const pts=l.stationIds.map(id=>stations.find(s=>s.id===id)).filter(Boolean).map(s=>[s.lat,s.lon]);if(pts.length>1)L.polyline(pts,{color:l.color,weight:6,opacity:.95}).addTo(gameLayer)})}
+function routeStationPosition(station,geometry){
+ const parts=geometry?.type==='LineString'?[geometry.coordinates]:geometry?.type==='MultiLineString'?geometry.coordinates:[];
+ let best=null;
+ parts.forEach((coords,partIndex)=>{
+  let cumulative=0;
+  for(let i=1;i<coords.length;i++){
+   const a=coords[i-1],b=coords[i],lat0=(a[1]+b[1]+station.lat)/3*Math.PI/180,scaleX=111320*Math.cos(lat0),scaleY=111320;
+   const ax=a[0]*scaleX,ay=a[1]*scaleY,bx=b[0]*scaleX,by=b[1]*scaleY,px=station.lon*scaleX,py=station.lat*scaleY,dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+   const t=len2?Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/len2)):0;
+   const ex=ax+t*dx,ey=ay+t*dy,dist=Math.hypot(px-ex,py-ey),segment=Math.sqrt(len2);
+   if(!best||dist<best.distance)best={part:partIndex,along:cumulative+t*segment,distance:dist};
+   cumulative+=segment;
+  }
+ });
+ return best;
+}
+function drawGameLines(){
+ gameLayer.clearLayers();
+ game.lines.forEach(line=>{
+  const [mode,...nameParts]=String(line.routeKey||'').split(':'),name=nameParts.join(':');
+  const candidates=routes.filter(r=>r.mode===mode&&String(r.name)===name&&r.geometry);
+  if(!candidates.length)return;
+  const owned=new Set(line.stationIds||[]);
+  let bestRoute=null,bestPositions=null,bestScore=null;
+  candidates.forEach(route=>{
+   const positions=stations.filter(s=>s.lines.some(x=>x.mode===mode&&String(x.name)===name)).map(s=>({station:s,pos:routeStationPosition(s,route.geometry)})).filter(x=>x.pos&&x.pos.distance<=500);
+   if(!positions.length)return;
+   const avg=positions.reduce((sum,x)=>sum+x.pos.distance,0)/positions.length;
+   const score=positions.length*1000-avg;
+   if(bestScore===null||score>bestScore){bestScore=score;bestRoute=route;bestPositions=positions}
+  });
+  if(!bestRoute||!bestPositions)return;
+  bestPositions.sort((a,b)=>a.pos.part-b.pos.part||a.pos.along-b.pos.along);
+  for(let i=1;i<bestPositions.length;i++){
+   const a=bestPositions[i-1].station,b=bestPositions[i].station;
+   if(!owned.has(a.id)||!owned.has(b.id))continue;
+   const distance=distanceMeters(a,b);
+   if(distance<15||distance>MAX_ADJACENT_METERS)continue;
+   L.polyline([[a.lat,a.lon],[b.lat,b.lon]],{color:line.color,weight:6,opacity:.95}).addTo(gameLayer);
+  }
+ });
+}
 function modal(title,description,placeholder,cb){$('modalTitle').textContent=title;$('modalText').textContent=description;$('modalInput').placeholder=placeholder;$('modalInput').value='';$('modal').classList.add('open');$('modalInput').focus();$('confirm').onclick=()=>{$('modal').classList.remove('open');cb($('modalInput').value.trim())}}
 $('cancel').onclick=()=>$('modal').classList.remove('open');
 
