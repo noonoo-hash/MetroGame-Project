@@ -54,7 +54,7 @@ function featureGeometry(f){let s=f.shape||f.geo_shape||f.geometry;if(!s)return 
 function routeMode(f){const t=String(f.route_type??'').trim().toLowerCase(),n=String(f.route_short_name||'').trim().toUpperCase().replace(/^(RER|TRAM|METRO)\s*/,'');if(t==='subway'||t==='metro'||t==='1')return'Metro';if(t==='tram'||t==='tramway'||t==='0')return'Tramway';if((t==='rail'||t==='train'||t==='2')&&['A','B','C','D','E'].includes(n))return'RER';return null}
 function modeLabel(mode){return mode==='Metro'?'Métro':mode==='RER'?'RER':mode==='Tramway'?'Tram':mode==='Bus'?'Bus':mode==='Ferry'?'Bateau':mode}
 function stationMode(f){const m=String(f.mode??f.mode_??'').toLowerCase();if(m.includes('tram')||Number(f.tramway)===1)return'Tramway';if(m.includes('metro')||Number(f.metro)===1)return'Metro';if(m.includes('rer')||Number(f.rer)===1)return'RER';return null}
-function cleanLineName(mode,value){let n=String(value??'').trim();const prefix=mode==='Tramway'?'TRAM(?:WAY)?':mode==='Metro'?'METRO':mode==='RER'?'RER':'';if(prefix)n=n.replace(new RegExp('^'+prefix+'\\s*','i'),'');return n.trim()||'?'}
+function cleanLineName(mode,value){let n=String(value??'').trim();const prefix=mode==='Tramway'?'TRAM(?:WAY)?':mode==='Metro'?'METRO':mode==='RER'?'RER':'';if(prefix)n=n.replace(new RegExp('^'+prefix+'\\s*','i'),'');n=n.trim();if(mode==='Tramway'&&/^\\d/.test(n)&&!/^T/i.test(n))n='T'+n;return n||'?'}
 
 const CITY_META={paris:{name:'Paris · Île-de-France',center:[48.8566,2.3522],zoom:10},marseille:{name:'Marseille',center:[43.2965,5.3698],zoom:12}};
 const cityDataCache={};
