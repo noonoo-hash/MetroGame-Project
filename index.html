@@ -101,6 +101,33 @@ function applyCitySnapshot(city,data){
  if(!game.ownedStations.length){const starter=data.stations.find(st=>st.lines.some(l=>l.mode==='Metro'))||data.stations[0];if(starter)game.ownedStations=[starter.id]}
  game.trains=Math.max(game.trains,assignedTrainCount());while(totalTrainCapacity()<game.trains)game.depots.push({name:'Dépôt supplémentaire',trains:0,capacity:DEPOT_CAPACITY});
 }
+async function loadGeographicTraces(city){
+ const specs=city==='paris'?[
+  ['https://geo.api.gouv.fr/regions/11?fields=nom,code&format=geojson&geometry=contour','region'],
+  ['https://geo.api.gouv.fr/departements?codeRegion=11&fields=nom,code&format=geojson&geometry=contour','department']
+ ]:[
+  ['https://geo.api.gouv.fr/departements/13?fields=nom,code&format=geojson&geometry=contour','department'],
+  ['https://geo.api.gouv.fr/communes/13055?fields=nom,code&format=geojson&geometry=contour','city']
+ ];
+ const layers=[];
+ for(const [url,type] of specs){
+  try{
+   const response=await fetch(url);if(!response.ok)continue;
+   const geo=await response.json();if(!geo?.features?.length&&!geo?.geometry)continue;
+   const layer=L.geoJSON(geo,{style:()=>({color:type==='region'?'#d7f36a':type==='department'?'#8ba4bd':'#d7f36a',weight:type==='region'?3:1.25,opacity:type==='region'?.9:.65,fill:false,dashArray:type==='department'?'5 5':null,interactive:false})});
+   layers.push(layer);
+  }catch(err){console.warn('Tracé géographique indisponible:',url,err)}
+ }
+ return layers;
+}
+async function showGeographicTraces(city){
+ if(boundaryLayer){map.removeLayer(boundaryLayer);boundaryLayer=null}
+ const layers=await loadGeographicTraces(city);
+ boundaryLayer=L.featureGroup(layers).addTo(map);
+ const bounds=boundaryLayer.getBounds();
+ if(bounds.isValid())map.fitBounds(bounds.pad(.07));
+ else map.setView(CITY_META[city].center,CITY_META[city].zoom);
+}
 async function switchCity(city){
  if(city===game.activeCity)return;
  if(!(game.unlockedCities||['paris']).includes(city)){toast('Cette ville est encore verrouillée.');$('citySelect').value=game.activeCity;return}
@@ -109,14 +136,13 @@ async function switchCity(city){
   storeActiveCityState();
   const data=city==='paris'?cityDataCache.paris:await loadMarseilleData();
   if(!data)throw Error('Données de la ville indisponibles.');
-  if(boundaryLayer){map.removeLayer(boundaryLayer);boundaryLayer=null}
-  if(data.boundary){boundaryLayer=L.geoJSON(data.boundary,{style:{color:'#d7f36a',weight:1.5,opacity:.85,fillColor:'#d7f36a',fillOpacity:.025,dashArray:'5 5'}}).addTo(map);map.fitBounds(boundaryLayer.getBounds().pad(.12))}
+  await showGeographicTraces(city);
   Object.values(routeLayers).forEach(l=>map.removeLayer(l));routeLayers={};Object.values(stationLayers).forEach(l=>map.removeLayer(l));stationLayers={};
   if(typeof gameLayer!=='undefined'&&gameLayer)gameLayer.clearLayers();
   stations=data.stations;routes=data.routes;game.activeCity=city;applyCitySnapshot(city,data);
   filters={Metro:true,RER:true,Tramway:true,Bus:true,Ferry:true};document.querySelectorAll('.mapfilters button').forEach(b=>b.classList.add('active'));
   stationMaxLevels.clear();computeStationMaxLevels();
-  if(city==='paris'){const regionalLayers=routes.filter(r=>r.geometry).map(r=>L.geoJSON({type:'Feature',geometry:r.geometry,properties:{}}));const bounds=regionalLayers.length?L.featureGroup(regionalLayers).getBounds():null;if(bounds?.isValid())map.fitBounds(bounds.pad(.06));else map.setView(CITY_META[city].center,CITY_META[city].zoom)}else map.setView(CITY_META[city].center,CITY_META[city].zoom);
+  // Le cadrage est défini par les limites géographiques, indépendamment des réseaux débloqués.
   $('citySelect').value=city;$('cityHeading').textContent=CITY_META[city].name.toUpperCase();
   $('cityEyebrow').textContent=city==='paris'?'Réseau ferroviaire · données IDFM':'Réseau de transport · données GTFS RTM';
   $('citySubtitle').textContent=city==='paris'?'Carte géographique · stations et tracés officiels':'Métro et tramway · réseau officiel RTM';
