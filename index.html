@@ -265,6 +265,7 @@ function drawGameLines(){
   if(!bestRoute||!bestPositions)return;
   bestPositions.sort((a,b)=>a.pos.part-b.pos.part||a.pos.along-b.pos.along);
   for(let i=1;i<bestPositions.length;i++){
+   if(bestPositions[i-1].pos.part!==bestPositions[i].pos.part)continue;
    const a=bestPositions[i-1].station,b=bestPositions[i].station;
    if(!owned.has(a.id)||!owned.has(b.id))continue;
    const distance=distanceMeters(a,b);
