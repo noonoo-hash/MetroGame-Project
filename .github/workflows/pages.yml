@@ -1,5 +1,6 @@
 name: Deploy METROPOLIS to GitHub Pages
 
+# A fresh workflow run avoids duplicate artifacts left by a previous retry.
 on:
   push:
     branches: [main]
