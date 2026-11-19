@@ -196,14 +196,39 @@ function sharedRoutes(a,b){return availableStationLines(a).map(x=>({mode:x.mode,
 function distanceMeters(a,b){const rad=x=>x*Math.PI/180,R=6371000,lat1=rad(a.lat),lat2=rad(b.lat),dLat=lat2-lat1,dLon=rad(b.lon-a.lon);const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 function isStationReachable(s){if(isOwned(s.id))return true;const unlockedLines=availableStationLines(s);const owned=(game.ownedStations||[]).map(id=>stations.find(x=>x.id===id)).filter(Boolean);const hasUnstartedLine=unlockedLines.some(line=>!owned.some(other=>other.lines.some(x=>x.mode===line.mode&&String(x.name)===String(line.name))));if(hasUnstartedLine)return true;return owned.some(other=>sharedRoutes(s,other).length>0&&distanceMeters(s,other)<=MAX_ADJACENT_METERS)}
 const STATION_PRICE=50000,TRACK_PRICE=28000,AUTO_TRAIN_PRICE=85000,MAX_ADJACENT_METERS=1800;
-function stationPurchaseQuote(s){const owned=(game.ownedStations||[]).map(x=>stations.find(t=>t.id===x)).filter(Boolean);const links=owned.flatMap(other=>sharedRoutes(s,other).map(route=>({other,route,distance:distanceMeters(s,other)}))).filter(x=>x.distance<=MAX_ADJACENT_METERS).sort((a,b)=>a.distance-b.distance);const chosen=links[0]||null;const existing=chosen?game.lines.find(l=>l.routeKey===chosen.route.key&&l.stationIds.includes(chosen.other.id)):null;return{chosen,existing,total:STATION_PRICE+(chosen?TRACK_PRICE:0)+(chosen&&!existing?AUTO_TRAIN_PRICE:0)}}
+function stationPurchaseQuote(s){
+ const owned=(game.ownedStations||[]).map(x=>stations.find(t=>t.id===x)).filter(Boolean);
+ const links=owned.flatMap(other=>sharedRoutes(s,other).map(route=>({other,route,distance:distanceMeters(s,other)}))).filter(x=>x.distance<=MAX_ADJACENT_METERS).sort((a,b)=>a.distance-b.distance);
+ let chosen=links[0]||null;
+ if(!chosen){
+  const unstarted=availableStationLines(s).find(route=>!owned.some(other=>other.lines.some(x=>x.mode===route.mode&&String(x.name)===String(route.name))));
+  if(unstarted)chosen={other:null,route:{...unstarted,key:routeKey(unstarted.mode,unstarted.name)},distance:0};
+ }
+ const existing=chosen?game.lines.find(l=>l.routeKey===chosen.route.key&&(!chosen.other||l.stationIds.includes(chosen.other.id))):null;
+ return{chosen,existing,total:STATION_PRICE+(chosen?.other?TRACK_PRICE:0)+(chosen&&!existing?AUTO_TRAIN_PRICE:0)}
+}
 function stationActionState(){const owned=isOwned(selected.id);if(owned){const lv=stationLevel(selected.id),max=stationMaxLevel(selected.id),cost=stationUpgradeCost(lv);return{owned,lv,max,cost,disabled:lv>=max||game.money<cost,kind:lv>=max?'maxed':game.money>=cost?'affordable':'unaffordable',label:lv>=max?'Niveau maximum atteint · '+lv+'/'+max:'Améliorer · '+fmt(cost)+' ('+lv+'/'+max+')',sub:'Gare achetée · niveau '+lv+' sur '+max}}const reachable=isStationReachable(selected),quote=stationPurchaseQuote(selected);return{owned,disabled:!reachable||game.money<quote.total,kind:!reachable?'maxed':game.money>=quote.total?'affordable':'unaffordable',label:'Acheter la gare · '+fmt(quote.total),sub:!reachable?'Gare trop éloignée pour le moment':'Coût total de construction'}}
 function stationActionPopupHtml(){if(!selected)return '';const a=stationActionState();return '<div class="station-action-popup"><div class="station-popup-title">'+escapeHtml(selected.name)+'</div><div class="station-popup-sub">'+a.sub+'</div><button id="stationMapAction" class="'+a.kind+'" '+(a.disabled?'disabled':'')+'>'+a.label+'</button></div>'}
 function bindStationPopupAction(){if(!stationActionPopup||!stationActionPopup.isOpen())return;const el=stationActionPopup.getElement()?.querySelector('#stationMapAction');if(el)el.onclick=()=>{if(!selected)return;if(isOwned(selected.id))upgradeSelectedStation();else buySelectedStation()}}
 map.on('popupopen',e=>{if(e.popup===stationActionPopup)bindStationPopupAction()});
 function renderPurchasePanel(){if(!selected)return;const a=stationActionState(),btn=$('buySelected');btn.classList.remove('affordable','unaffordable','maxed');btn.textContent=a.label;btn.disabled=a.disabled;btn.classList.add(a.kind);$('ownershipInfo').textContent=a.sub;$('upgradeSelected').style.display='none';if(stationActionPopup){stationActionPopup.setContent(stationActionPopupHtml());bindStationPopupAction()}}
 function upgradeSelectedStation(){if(!selected||!isOwned(selected.id))return;const lv=stationLevel(selected.id),max=stationMaxLevel(selected.id);if(lv>=max){toast('Cette gare a atteint son niveau maximum.');return}const cost=stationUpgradeCost(lv);if(!spend(cost))return;game.stationLevels[selected.id]=lv+1;toast(selected.name+' améliorée : niveau '+(lv+1)+' / '+max+'.');renderStats();selectStation(selected.id)}
-function buySelectedStation(){if(!selected)return;const id=selected.id;if(isOwned(id)){upgradeSelectedStation();return}if(!isStationReachable(selected)){toast('Progression de proche en proche : cette gare n’est pas encore accessible.');return}const quote=stationPurchaseQuote(selected),chosen=quote.chosen,existingLine=quote.existing;if(!spend(quote.total))return;game.ownedStations.push(id);if(chosen){if(!existingLine&&game.trains>=totalTrainCapacity()){game.ownedStations.pop();game.money+=quote.total;toast('Capacité des dépôts atteinte : construis un dépôt avant cette nouvelle ligne.');return}let line=existingLine;if(!line){line={name:modeLabel(chosen.route.mode)+' '+chosen.route.name,routeKey:chosen.route.key,color:chosen.route.mode==='Metro'?'#d7f36a':colors[chosen.route.mode],stationIds:[chosen.other.id],trainCount:0};game.lines.push(line)}if(!line.stationIds.includes(id))line.stationIds.push(id);if(!existingLine){line.trainCount=1;game.trains++;}toast(existingLine?'Gare ajoutée à '+line.name+'.':'Ligne '+line.name+' ouverte · 1 train affecté automatiquement.')}else{toast('Gare achetée. Achète une gare voisine de la même ligne pour ouvrir la liaison.')}renderStats();drawStations();drawGameLines();selectStation(id)}
+function buySelectedStation(){
+ if(!selected)return;const id=selected.id;if(isOwned(id)){upgradeSelectedStation();return}
+ if(!isStationReachable(selected)){toast('Progression de proche en proche : cette gare n’est pas encore accessible.');return}
+ const quote=stationPurchaseQuote(selected),chosen=quote.chosen,existingLine=quote.existing;
+ if(chosen&&!existingLine&&game.trains>=totalTrainCapacity()){toast('Capacité des dépôts atteinte : construis un dépôt avant cette nouvelle ligne.');return}
+ if(!spend(quote.total))return;
+ game.ownedStations.push(id);
+ if(chosen){
+  let line=existingLine;
+  if(!line){line={name:modeLabel(chosen.route.mode)+' '+chosen.route.name,routeKey:chosen.route.key,color:chosen.route.mode==='Metro'?'#d7f36a':colors[chosen.route.mode],stationIds:chosen.other?[chosen.other.id]:[],trainCount:0};game.lines.push(line)}
+  if(!line.stationIds.includes(id))line.stationIds.push(id);
+  if(!existingLine){line.trainCount=1;game.trains++;}
+  toast(existingLine?'Gare ajoutée à '+line.name+'.':'Ligne '+line.name+' ouverte · première gare achetée.');
+ }else toast('Gare achetée.');
+ renderStats();drawStations();drawGameLines();selectStation(id)
+}
 let gameLayer=L.layerGroup().addTo(map);
 function routeStationPosition(station,geometry){
  const parts=geometry?.type==='LineString'?[geometry.coordinates]:geometry?.type==='MultiLineString'?geometry.coordinates:[];
